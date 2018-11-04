@@ -1036,6 +1036,24 @@ Stored_Unit* CUNYAIModule::getClosestAirStored(Unit_Inventory &ui, const Positio
     return return_unit;
 }
 
+Stored_Unit* CUNYAIModule::getClosestCloakStored(Unit_Inventory &ui, const Map_Inventory &inv) {
+    int min_dist = 999999;
+    int temp_dist = 999999;
+    Stored_Unit* return_unit = nullptr;
+
+    if (!ui.unit_inventory_.empty()) {
+        for (auto & u = ui.unit_inventory_.begin(); u != ui.unit_inventory_.end() && !ui.unit_inventory_.empty(); u++) {
+            temp_dist = inv.home_base_.getApproxDistance(u->second.pos_); // can't be const because of this line.
+            if (temp_dist <= min_dist && u->second.valid_pos_ && (u->second.type_.isCloakable() || u->second.type_ == UnitTypes::Zerg_Lurker || u->second.type_.hasPermanentCloak())) {
+                min_dist = temp_dist;
+                return_unit = &(u->second);
+            }
+        }
+    }
+
+    return return_unit;
+}
+
 //Gets pointer to closest unit to point in Unit_inventory. Checks range. Careful about visiblity.
 Stored_Unit* CUNYAIModule::getClosestStoredBuilding(Unit_Inventory &ui, const Position &origin, const int &dist = 999999) {
     int min_dist = dist;
@@ -1246,6 +1264,18 @@ Unit_Inventory CUNYAIModule::getUnitInventoryInRadius(const Unit_Inventory &ui, 
     }
     return ui_out;
 }
+
+//Searches an enemy inventory for units within a range. Returns enemy inventory meeting that critera. Can return nullptr.
+Unit_Inventory CUNYAIModule::getCloakableUnitInventoryInRadius(const Unit_Inventory &ui, const Position &origin, const int &dist) {
+    Unit_Inventory ui_out;
+    for (auto & e = ui.unit_inventory_.begin(); e != ui.unit_inventory_.end() && !ui.unit_inventory_.empty(); e++) {
+        if ((*e).second.pos_.getDistance(origin) <= dist && e->second.valid_pos_ && (e->second.type_.isCloakable() || e->second.type_ == UnitTypes::Zerg_Lurker || e->second.type_.hasPermanentCloak())) {
+            ui_out.addStored_Unit((*e).second); // if we take any distance and they are in inventory.
+        }
+    }
+    return ui_out;
+}
+
 
 //Searches an enemy inventory for units within a range. Returns enemy inventory meeting that critera. Can return nullptr. Overloaded for specifi types.
 Unit_Inventory CUNYAIModule::getUnitInventoryInRadius(const Unit_Inventory &ui, const UnitType u_type, const Position &origin, const int &dist) {

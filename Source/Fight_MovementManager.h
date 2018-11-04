@@ -15,7 +15,8 @@ public:
     void Pathing_Movement( const Unit &unit, const Unit_Inventory &ui, Unit_Inventory &ei, const int &passed_distance, const Position &e_pos, const Map_Inventory &inv );
     //Forces a unit to surround the concerning ei. Does not advance.
     //void Surrounding_Movement(const Unit &unit, const Unit_Inventory &ui, Unit_Inventory &ei, const Map_Inventory &inv);
-
+    // sends true if there was a detector sent, false otherwise.
+    bool Send_Detector(const bool supply_starved);
 
     Position Output;
 

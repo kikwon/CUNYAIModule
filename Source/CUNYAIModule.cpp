@@ -335,7 +335,7 @@ void CUNYAIModule::onFrame()
         (!buildorder.building_gene_.empty() && my_reservation.getExcessGas() > 0) ||// you need gas for a required build order item.
         (tech_starved && Tech_Avail() && Broodwar->self()->gas() < 200); // you need gas because you are tech starved.
     supply_starved = (current_map_inventory.getLn_Supply_Ratio() < gamma  &&   //If your supply is disproportionately low, then you are supply starved, unless
-        Broodwar->self()->supplyTotal() < 400); // you have hit your supply limit, in which case you are not supply blocked. The real supply goes from 0-400, since lings are 0.5 observable supply.
+                      Broodwar->self()->supplyTotal() < 400); // you have hit your supply limit, in which case you are not supply blocked. The real supply goes from 0-400, since lings are 0.5 observable supply.
 
     //This command has passed its diagnostic usefullness.
     //if constexpr (ANALYSIS_MODE) {
@@ -570,6 +570,13 @@ void CUNYAIModule::onFrame()
         return;
     }
 
+    // Detectors are called for cloaked units. Only if you're not supply starved, because we only have overlords for detectors.  Should happen before combat script or else the units will be 'continued' past;
+    auto start_detector = std::chrono::high_resolution_clock::now();
+    Mobility mobility;
+    mobility.Send_Detector(supply_starved);
+    auto end_detector = std::chrono::high_resolution_clock::now();
+    detector_time += end_detector - start_detector;
+
     // Iterate through all the units that we own
     for (auto &u : Broodwar->self()->getUnits())
     {
@@ -594,6 +601,9 @@ void CUNYAIModule::onFrame()
         if (!spamGuard(u)) {
             continue;
         }
+
+        //if (friendly_player_model.units_.getStoredUnit(u)->phase_ == "Detecting/Revealing") continue;
+
         UnitType u_type = u->getType();
 
         // Finally make the unit do some stuff!
@@ -638,63 +648,6 @@ void CUNYAIModule::onFrame()
         }
 
         auto end_unit_morphs = std::chrono::high_resolution_clock::now();
-
-
-        // Detectors are called for cloaked units. Only if you're not supply starved, because we only have overlords for detectors.  Should happen before combat script or else the units will be 'continued' past;
-        auto start_detector = std::chrono::high_resolution_clock::now();
-        Position c; // holder for cloaked unit position.
-        bool call_detector = false;
-        if (!supply_starved && u_type != UnitTypes::Zerg_Overlord && checkOccupiedArea(enemy_player_model.units_, u->getPosition(), u_type.sightRange())) {
-            Unit_Inventory e_neighbors = getUnitInventoryInRadius(enemy_player_model.units_, u->getPosition(), u_type.sightRange());
-            for (auto e = e_neighbors.unit_inventory_.begin(); e != e_neighbors.unit_inventory_.end() && !e_neighbors.unit_inventory_.empty(); e++) {
-                if ((*e).second.type_.isCloakable() || (*e).second.type_ == UnitTypes::Zerg_Lurker || (*e).second.type_.hasPermanentCloak() || (*e).second.type_.isBurrowable()) {
-                    c = (*e).second.pos_; // then we may to send in some vision.
-                    call_detector = true;
-                    break;
-                } //some units, DT, Observers, are not cloakable. They are cloaked though. Recall burrow and cloak are different.
-            }
-            if (call_detector) {
-                int dist = 999999;
-                int dist_temp = 0;
-                bool detector_found = false;
-                Stored_Unit detector_of_choice;
-                for (auto d : friendly_player_model.units_.unit_inventory_) {
-                    if (d.second.type_ == UnitTypes::Zerg_Overlord &&
-                        d.second.bwapi_unit_ &&
-                        !d.second.bwapi_unit_->isUnderAttack() &&
-                        d.second.current_hp_ > 0.25 * d.second.type_.maxHitPoints()) { // overlords don't have shields.
-                        dist_temp = d.second.bwapi_unit_->getDistance(c);
-                        if (dist_temp < dist) {
-                            dist = dist_temp;
-                            detector_of_choice = d.second;
-                            detector_found = true;
-                        }
-                    }
-                }
-                if (detector_found /*&& spamGuard(detector_of_choice)*/) {
-                    double theta = atan2(detector_of_choice.pos_.y- c.y, detector_of_choice.pos_.x - c.x);
-                    Position closest_loc_to_c_that_gives_vision = Position(c.x + cos(theta) * detector_of_choice.type_.sightRange() * 0.75, c.y + sin(theta) * detector_of_choice.type_.sightRange() * 0.75);
-                    if (closest_loc_to_c_that_gives_vision.isValid() && closest_loc_to_c_that_gives_vision != Positions::Origin) {
-                        detector_of_choice.bwapi_unit_->move(closest_loc_to_c_that_gives_vision);
-                        if constexpr (DRAWING_MODE) {
-                            Broodwar->drawCircleMap(c, 25, Colors::Cyan);
-                            Diagnostic_Line(detector_of_choice.pos_, closest_loc_to_c_that_gives_vision, current_map_inventory.screen_position_, Colors::Cyan);
-                        }
-                        detector_of_choice.updateStoredUnit(detector_of_choice.bwapi_unit_);
-                    }
-                    else {
-                        detector_of_choice.bwapi_unit_->move(c);
-                        if constexpr (DRAWING_MODE) {
-                            Broodwar->drawCircleMap(c, 25, Colors::Cyan);
-                            Diagnostic_Line(detector_of_choice.pos_, current_map_inventory.screen_position_, c, Colors::Cyan);
-                        }
-                        detector_of_choice.updateStoredUnit(detector_of_choice.bwapi_unit_);
-                    }
-
-                }
-            }
-        }
-        auto end_detector = std::chrono::high_resolution_clock::now();
 
         //Combat Logic. Has some sophistication at this time. Makes retreat/attack decision.  Only retreat if your army is not up to snuff. Only combat units retreat. Only retreat if the enemy is near. Lings only attack ground. 
         auto start_combat = std::chrono::high_resolution_clock::now();
@@ -1035,7 +988,6 @@ void CUNYAIModule::onFrame()
 
         auto end_creepcolony = std::chrono::high_resolution_clock::now();
 
-        detector_time += end_detector - start_detector;
         larva_time += end_unit_morphs - start_unit_morphs;
         worker_time += end_worker - start_worker;
         //scout_time += end_scout - start_scout;
@@ -1043,7 +995,6 @@ void CUNYAIModule::onFrame()
         upgrade_time += end_upgrade - start_upgrade;
         creepcolony_time += end_creepcolony - start_creepcolony;
     } // closure: unit iterator
-
 
     auto end = std::chrono::high_resolution_clock::now();
     total_frame_time = end - start_preamble;

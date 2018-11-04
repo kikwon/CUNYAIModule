@@ -212,11 +212,12 @@ public:
       const char * noRaceName( const char *name );
       //Converts a unit inventory into a unit set directly. Checks range. Careful about visiblity.
       Unitset getUnit_Set( const Unit_Inventory & ui, const Position & origin, const int & dist );
-      //Gets pointer to closest unit to origin in appropriate inventory. Checks range. Careful about visiblity.
+      //Gets pointer to closest unit to origin in appropriate inventory. Checks range. Careful about visiblity. Will need to standardize, some grab closest from home, other grab closest from other places.
       static Stored_Unit* getClosestStored( Unit_Inventory & ui, const Position & origin, const int & dist );
       static Stored_Unit* getClosestStored(Unit_Inventory &ui, const UnitType &u_type, const Position &origin, const int &dist);
       static Stored_Unit * getClosestGroundStored(Unit_Inventory & ui, const Position & origin, const Map_Inventory &inv);
       static Stored_Unit * getClosestAirStored(Unit_Inventory & ui, const Position & origin, const Map_Inventory & inv);
+      static Stored_Unit * getClosestCloakStored(Unit_Inventory & ui, const Map_Inventory & inv);
       static Stored_Unit * getClosestStoredBuilding(Unit_Inventory & ui, const Position & origin, const int & dist);
       static Stored_Resource* getClosestStored(Resource_Inventory &ri, const Position &origin, const int & dist);
       static Stored_Resource* getClosestStored(Resource_Inventory & ri, const UnitType & r_type, const Position & origin, const int & dist);
@@ -235,6 +236,7 @@ public:
 
       //Searches an enemy inventory for units of a type within a range. Returns enemy inventory meeting that critera. Returns pointers even if the unit is lost, but the pointers are empty.
       static Unit_Inventory getUnitInventoryInRadius( const Unit_Inventory &ui, const Position &origin, const int &dist );
+      static Unit_Inventory getCloakableUnitInventoryInRadius(const Unit_Inventory & ui, const Position & origin, const int & dist);
       static Unit_Inventory getThreateningUnitInventoryInRadius(const Unit_Inventory & ui, const Position & origin, const int & dist, const bool & air_attack);
       static Unit_Inventory getUnitsOutOfReach(const Unit_Inventory & ui, const Unit & target);
 

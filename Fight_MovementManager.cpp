@@ -146,6 +146,73 @@ void Mobility::Pathing_Movement(const Unit &unit, const Unit_Inventory &ui, Unit
     }
 }
 
+bool Mobility::Send_Detector(const bool supply_starved)
+{
+    Position c; // holder for cloaked unit position.
+    bool call_detector = false;
+    int active_detectors = 0;
+
+    if (!supply_starved && CUNYAIModule::enemy_player_model.units_.cloaker_count_ > 0){
+
+        Unit_Inventory cloakers = CUNYAIModule::getCloakableUnitInventoryInRadius(CUNYAIModule::enemy_player_model.units_, CUNYAIModule::current_map_inventory.home_base_, 99999999);
+
+        for (auto i : CUNYAIModule::friendly_player_model.units_.unit_inventory_) {
+            active_detectors += i.second.phase_ == "Detecting/Revealing";
+        }
+
+        CUNYAIModule::DiagnosticText("detectors:%d, cloakers:%d", active_detectors, cloakers.unit_inventory_.size());
+
+        if (active_detectors <= 1) {
+            Stored_Unit* cloaker = CUNYAIModule::getClosestCloakStored(CUNYAIModule::enemy_player_model.units_, CUNYAIModule::current_map_inventory);
+            if (cloaker) {
+                c = cloaker->pos_;
+                int dist = 999999;
+                int dist_temp = 0;
+                bool detector_found = false;
+                Stored_Unit detector_of_choice;
+                for (auto d : CUNYAIModule::friendly_player_model.units_.unit_inventory_) {
+                    if (d.second.type_ == UnitTypes::Zerg_Overlord &&
+                        d.second.bwapi_unit_ &&
+                        !d.second.bwapi_unit_->isUnderAttack() &&
+                       (CUNYAIModule::spamGuard(d.second.bwapi_unit_) || d.second.phase_ == "Detecting/Revealing") &&
+                        d.second.current_hp_ > 0.25 * d.second.type_.maxHitPoints()) { // overlords don't have shields.
+                        dist_temp = d.second.bwapi_unit_->getDistance(c);
+                        if (dist_temp < dist) {
+                            dist = dist_temp;
+                            detector_of_choice = d.second;
+                            detector_found = true;
+                        }
+                    }
+                }
+                if (detector_found) {
+                    Stored_Unit& changing_unit = *CUNYAIModule::friendly_player_model.units_.getStoredUnit(detector_of_choice.bwapi_unit_);
+                    changing_unit.phase_ = "Detecting/Revealing";
+                    changing_unit.updateStoredUnit(detector_of_choice.bwapi_unit_);
+
+                    double theta = atan2(detector_of_choice.pos_.y - c.y, detector_of_choice.pos_.x - c.x);
+                    Position closest_loc_to_c_that_gives_vision = Position(c.x + cos(theta) * detector_of_choice.type_.sightRange() * 0.75, c.y + sin(theta) * detector_of_choice.type_.sightRange() * 0.75);
+                    if (closest_loc_to_c_that_gives_vision.isValid() && closest_loc_to_c_that_gives_vision != Positions::Origin && CUNYAIModule::spamGuard(detector_of_choice.bwapi_unit_)) {
+                        detector_of_choice.bwapi_unit_->move(closest_loc_to_c_that_gives_vision);
+                        if constexpr (DRAWING_MODE) {
+                            Broodwar->drawCircleMap(c, 25, Colors::Cyan);
+                            CUNYAIModule::Diagnostic_Line(detector_of_choice.pos_, closest_loc_to_c_that_gives_vision, CUNYAIModule::current_map_inventory.screen_position_, Colors::Cyan);
+                        }
+                    }
+                    else if (CUNYAIModule::spamGuard(detector_of_choice.bwapi_unit_)) {
+                        detector_of_choice.bwapi_unit_->move(c);
+                        if constexpr (DRAWING_MODE) {
+                            Broodwar->drawCircleMap(c, 25, Colors::Cyan);
+                            CUNYAIModule::Diagnostic_Line(detector_of_choice.pos_, CUNYAIModule::current_map_inventory.screen_position_, c, Colors::Cyan);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+    return false;
+}
+
 
 // This is basic combat logic for nonspellcasting units.
 void Mobility::Tactical_Logic(const Unit &unit, const Stored_Unit &e_unit, Unit_Inventory &ei, const Unit_Inventory &ui, const int &passed_distance, const Map_Inventory &inv, const Color &color = Colors::White)
