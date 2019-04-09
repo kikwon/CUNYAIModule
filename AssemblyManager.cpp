@@ -14,7 +14,7 @@ using namespace BWAPI;
 using namespace Filter;
 using namespace std;
 
-std::map<UnitType, int> AssemblyManager::assembly_cycle_ = { { UnitTypes::None, 0 }, { UnitTypes::Zerg_Ultralisk, 0 } ,{ UnitTypes::Zerg_Mutalisk, 0 },{ UnitTypes::Zerg_Scourge, 0 },{ UnitTypes::Zerg_Hydralisk, 0 },{ UnitTypes::Zerg_Zergling , 0 },{ UnitTypes::Zerg_Lurker, 0 } ,{ UnitTypes::Zerg_Guardian, 0 } ,{ UnitTypes::Zerg_Devourer, 0 } }; // persistent valuation of buildable upgrades. Should build most valuable one every opportunity.
+std::map<UnitType, int> AssemblyManager::assembly_cycle_ = { { UnitTypes::None, 0 }, { UnitTypes::Zerg_Ultralisk, 0 } ,{ UnitTypes::Zerg_Mutalisk, 0 },{ UnitTypes::Zerg_Scourge, 0 },{ UnitTypes::Zerg_Hydralisk, 0 },{ UnitTypes::Zerg_Zergling , 0 },{ UnitTypes::Zerg_Lurker, 0 } ,{ UnitTypes::Zerg_Guardian, 0 } ,{ UnitTypes::Zerg_Devourer, 0 }, { UnitTypes::Zerg_Queen, 0 } }; // persistent valuation of buildable upgrades. Should build most valuable one every opportunity.
 Unit_Inventory AssemblyManager::larva_bank_;
 Unit_Inventory AssemblyManager::hydra_bank_;
 Unit_Inventory AssemblyManager::muta_bank_;
@@ -409,7 +409,6 @@ bool AssemblyManager::Building_Begin(const Unit &drone, const Map_Inventory &inv
             CUNYAIModule::Count_SuccessorUnits(UnitTypes::Zerg_Lair, CUNYAIModule::friendly_player_model.units_) > 0 &&
             CUNYAIModule::Count_Units(UnitTypes::Zerg_Extractor) >= 3);
     }
-
 
     // Always:
         if (!buildings_started) buildings_started = Check_N_Build(UnitTypes::Zerg_Evolution_Chamber, drone, upgrade_bool &&
@@ -1027,9 +1026,20 @@ void Building_Gene::getInitialBuildOrder(string s) {
     Build_Order_Object lurker_tech = Build_Order_Object(TechTypes::Lurker_Aspect);
     Build_Order_Object grooved_spines = Build_Order_Object(UpgradeTypes::Grooved_Spines);
     Build_Order_Object muscular_augments = Build_Order_Object(UpgradeTypes::Muscular_Augments);
+	Build_Order_Object queen = Build_Order_Object(UnitTypes::Zerg_Queen);
+	Build_Order_Object gamete_meiosis = Build_Order_Object(UpgradeTypes::Gamete_Meiosis);
+	Build_Order_Object carapace = Build_Order_Object(UpgradeTypes::Zerg_Carapace);
 
     for (auto &build : build_string) {
-        if (build == "hatch") {
+		string build_array[28] = { "hatch", "extract", "drone", "ovi", "overlord", "pool", "evo", "speed", "ling", "creep", "sunken", "spore", "lair", "hive", "spire", "greter_spire", "devourer", "muta", "lurker_tech", "hydra", "lurker", "hydra_den", "queens_nest", "grooved_spines", "muscular_augments", "queen", "gamete_meiosis", "carapace"};
+		Build_Order_Object object_array[28] = { hatch, extract, drone, ovi, ovi, pool, evo, speed, ling, creep, sunken, spore, lair, hive, spire, greater_spire, devourer, muta, lurker_tech, hydra, lurker, hydra_den, queens_nest, grooved_spines, muscular_augments, queen, gamete_meiosis, carapace };
+		for (int i = 0; i < 28; i = i + 1) {
+			if (build == build_array[i]) {
+				building_gene_.push_back(object_array[i]);
+			}
+		}
+		/*
+		if (build == "hatch") {
             building_gene_.push_back(hatch);
         }
         else if (build == "extract") {
@@ -1104,6 +1114,16 @@ void Building_Gene::getInitialBuildOrder(string s) {
         else if (build == "muscular_augments") {
             building_gene_.push_back(muscular_augments);
         }
+		else if (build == "queen") {
+			building_gene_.push_back(queen);
+		}
+		else if (build == "gamete_meiosis") {
+			building_gene_.push_back(gamete_meiosis);
+		}
+		else if (build == "carapace") {
+			building_gene_.push_back(carapace);
+		}
+		*/
     }
 }
 
