@@ -461,5 +461,6 @@ GeneticHistory::GeneticHistory(string file) {
 		a_econ_out_mutate_ = 1-a_army_out;
 		a_tech_out_mutate_ = a_tech_out;
 		r_out_mutate_ = r_out;
+		build_order_ = build_order_list[build_order_rand];
 	}
 }
