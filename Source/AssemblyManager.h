@@ -3,11 +3,12 @@
 #include "Map_Inventory.h"
 #include "Unit_Inventory.h"
 #include "FAP\FAP\include\FAP.hpp" // could add to include path but this is more explicit.
+#include "BWEM\include\bwem.h"
+#include "PlayerModelManager.h"
 
 using namespace BWAPI;
 using namespace Filter;
 using namespace std;
-
 
 class AssemblyManager {
 private: 
@@ -19,7 +20,6 @@ private:
     static int last_frame_of_larva_morph_command;
     static int last_frame_of_hydra_morph_command;
     static int last_frame_of_muta_morph_command;
-
 public:
     static UnitType testAirWeakness(const Research_Inventory & ri);  // returns spore colony if weak against air. Tests explosive damage.
     static UnitType returnOptimalUnit(const map<UnitType, int> combat_types, const Research_Inventory & ri); // returns an optimal unit type from a comparison set.
@@ -33,13 +33,13 @@ public:
     static bool Check_N_Grow(const UnitType & unittype, const Unit & larva, const bool & extra_critera);
     static bool Expo(const Unit &unit, const bool &extra_critera, Map_Inventory &inv);
     // Builds the next building you can afford. Area of constant improvement.
-    static bool Building_Begin(const Unit & drone, const Map_Inventory & inv, const Unit_Inventory & e_inv);
+    static bool Building_Begin(const Unit & drone, const Unit_Inventory & e_inv);
     // Returns a tile that is suitable for building.
     static TilePosition getBuildablePosition(const TilePosition target_pos, const UnitType build_type, const int tile_grid_size);
     // Moves all units except for the Stored exeption_unit elsewhere.
     static void clearBuildingObstuctions(const Unit_Inventory & ui, Map_Inventory & inv, const Unit & exception_unit);
     // returns a combat unit of usefulness. Determined by a series of FAP simulations stored in assembly_cycle_.
-    static bool Reactive_BuildFAP(const Unit & morph_canidate, const Map_Inventory & inv, const Unit_Inventory & ui, const Unit_Inventory & ei);
+    static bool Reactive_BuildFAP(const Unit & morph_canidate);
     // print the assembly cycle we're thinking about.
     static void Print_Assembly_FAP_Cycle(const int & screen_x, const int & screen_y);
     static void updatePotentialBuilders();
